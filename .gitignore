@@ -1,0 +1,15 @@
+__pycache__
+
+.vscode
+
+desktop.ini
+
+.DS_Store
+
+debug.log
+
+list.db
+
+img
+
+page_crawl_test.py
