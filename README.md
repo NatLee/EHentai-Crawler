@@ -50,6 +50,8 @@ Selenium operate the browser with [Chromedriver](https://chromedriver.chromium.o
 
 First, you must set some settings in the file,`setting.ini`.
 
+**!!!Note: DO NOT SET MORE THAN 5 THREADS OR YOU WILL BE BANNED!!!**
+
 ### Step: Indexing
 
 Indexing is very important, so we need to crawl the index list.
