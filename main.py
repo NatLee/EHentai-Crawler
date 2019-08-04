@@ -163,7 +163,7 @@ if __name__== '__main__':
         random.shuffle(needToBeCrawledItems)
 
    
-        # split two or more threads for paralleling, but no more than 5 cause you'll be banned
+        # split two or more threads for paralleling
         batchList = tqdm(list(batch(needToBeCrawledItems, numberOfThread)), desc='Split to {} threads for each batch ...'.format(numberOfThread), ascii=True)
         for needToBeCrawledSlice in batchList:
             threads = list()
@@ -174,7 +174,7 @@ if __name__== '__main__':
 
             for thread in threads:    
                 thread.start()
-                time.sleep(random.randint(1,3))
+            time.sleep(random.randint(1,3))
 
             for thread in threads:
                 pageDataFormats.append(thread.join())

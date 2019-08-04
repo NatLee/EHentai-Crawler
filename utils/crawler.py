@@ -101,7 +101,7 @@ def crawlTagAndImage(needToBeCrawledItems, crawlTagOnly, imgDataFolder):
 
         except Exception as e:
             logging.warning('"{}" with gallery ::{}::'.format(e, gallery_id))
-            if galleryPageHtml.text.find('This gallery has been removed or is unavailable or in EXHentai.') > 0:
+            if galleryPageHtml.text.find('This gallery has been removed or is unavailable') > 0:
                 logging.warning('This gallery ::{}:: has been removed or is unavailable.'.format(gallery_id))
                 return -1
             if galleryPageHtml.text.find('Error 503 Service Unavailable') > 0:

@@ -50,7 +50,7 @@ Selenium operate the browser with [Chromedriver](https://chromedriver.chromium.o
 
 First, you must set some settings in the file,`setting.ini`.
 
-**!!!Note: DO NOT SET MORE THAN 5 THREADS OR YOU WILL BE BANNED!!!**
+**!!!THE NUMBER OF THREAD YOU SET MORE, THE PROBILITY OF IP BAN IS GETTING MORE!!!**
 
 ### Step: Indexing
 
@@ -58,7 +58,7 @@ Indexing is very important, so we need to crawl the index list.
 
 `python .\main.py --crawl_list`
 
-This may take about 25 hours to crawl the list from the main directionary.
+This may take about 25 hours to crawl the list from the EHentai index. I'll make it parallelly work in the future.
 
 ### Step: Crawl information
 
