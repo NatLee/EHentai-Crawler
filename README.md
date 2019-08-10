@@ -1,5 +1,7 @@
 
 # EHentai Crawler
+========
+[![License: GPL v3](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE) [![Python 3](https://img.shields.io/badge/python-3-blue.svg)](https://www.python.org/) 
 
 Crawl tags and images from EHentai or ExHentai.
 
@@ -46,6 +48,8 @@ And we use Chrome as our browser with selenium, so you need to install [Chrome](
 
 Selenium operate the browser with [Chromedriver](https://chromedriver.chromium.org/) and ours version in `.\chromedriver` is **75.0.3770.140**.
 
+**Note: In the linux-based OS, you need to use `chmod` to ensure the driver can execute with higher permission.**
+
 ## Start
 
 First, you must set some settings in the file,`setting.ini`.
@@ -84,7 +88,7 @@ You can only download images with URL.
 
 Just run this command:
 
-`python -i .\main.py -cu https://<EHENTAI_OR_EXHENTAI>.org/g/<GALLERY_ID>/<GALLERY_HASH>/`
+`python .\main.py -cu https://<EHENTAI_OR_EXHENTAI>.org/g/<GALLERY_ID>/<GALLERY_HASH>/`
 
 The downloaded images will save in the folder `.\img` as default.
 
