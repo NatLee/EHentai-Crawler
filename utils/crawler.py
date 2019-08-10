@@ -68,6 +68,8 @@ def crawlTagAndImage(needToBeCrawledItems, crawlTagOnly, imgDataFolder):
                 htmlText = sd.getPageSource(galleryUrl)
             galleryPageHtml = BeautifulSoup(htmlText, 'html.parser')
 
+
+
             if galleryPageHtml.text.find('Content Warning') > 0:
                 # reload to skip content warning
                 htmlText = sd.getPageSource(galleryUrl)
@@ -95,7 +97,14 @@ def crawlTagAndImage(needToBeCrawledItems, crawlTagOnly, imgDataFolder):
                 favorited_time = int(favorited_time.split(' ')[0])
             
             rating_count = int(galleryPageHtml.find_all('span', attrs={'id': 'rating_count'})[0].text)
-            average_score = float(galleryPageHtml.find_all('td', attrs={'id': 'rating_label'})[0].text.split(' ')[1])
+
+            average_score = galleryPageHtml.find_all('td', attrs={'id': 'rating_label'})[0].text
+            if average_score.find('Yet') > 0:
+                average_score = 0.0
+            else:
+                average_score = float(average_score.split(' ')[1])
+
+
             pageDataFormat = {'favorited_time': favorited_time, 'rating_count': rating_count, 'average_score': average_score, 'gallery_id': gallery_id, 'tags': str(tagClass)}
             LOAD_SUCCESS_FLAG = True
 
@@ -103,6 +112,9 @@ def crawlTagAndImage(needToBeCrawledItems, crawlTagOnly, imgDataFolder):
             logging.warning('"{}" with gallery ::{}::'.format(e, gallery_id))
             if galleryPageHtml.text.find('This gallery has been removed or is unavailable') > 0:
                 logging.warning('This gallery ::{}:: has been removed or is unavailable.'.format(gallery_id))
+                return -1
+            if galleryPageHtml.text.find('Gallery not found. If you just added this gallery, you may have to wait a short while before it becomes available.') > 0:
+                logging.warning('Gallery not found ::{}::'.format(gallery_id))
                 return -1
             if galleryPageHtml.text.find('Error 503 Service Unavailable') > 0:
                 logging.warning('You got 503 Error with gallery ::{}::. We sleep 30 sec(s).'.format(gallery_id))

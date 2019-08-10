@@ -18,10 +18,11 @@ from utils.config import indexUrl, listUrl, numberOfThread, imgDataFolder, exMod
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s : %(message)s')
 
 parser = argparse.ArgumentParser(description='EHentai Crawler: You need crawl list to get list information from ehentai at first. Second, you can only crawl tags or both tags and images.')
-parser.add_argument('--crawl_list', action='store', nargs='?', const=True, default=False, type=bool, help='Crawl EHentai page list.')
-parser.add_argument('--update_crawl_list', action='store', nargs='?', const=True, default=False, type=bool, help='Crawl EHentai page list and update with time check.')
-parser.add_argument('--crawl_each_page', action='store', nargs='?', const=True, default=False, type=bool, help='Crawl EHentai tags and save images for each page.')
-parser.add_argument('--crawl_tag_only', action='store', nargs='?', const=True, default=False, type=bool, help='Crawl EHentai tags for each page.')
+parser.add_argument('-c', '--crawl_list', action='store', nargs='?', const=True, default=False, type=bool, help='Crawl EHentai page list.')
+parser.add_argument('-u', '--update_crawl_list', action='store', nargs='?', const=True, default=False, type=bool, help='Crawl EHentai page list and update with time check.')
+parser.add_argument('-p', '--crawl_each_page', action='store', nargs='?', const=True, default=False, type=bool, help='Crawl EHentai tags and save images for each page.')
+parser.add_argument('-to', '--crawl_tag_only', action='store', nargs='?', const=True, default=False, type=bool, help='Crawl EHentai tags for each page.')
+parser.add_argument('-cu', '--crawl_with_url', dest='gallery_url', default=None, type=str, help='Crawl EHentai gallery with url.')
 parser.print_help()
 config = parser.parse_args()
 
@@ -163,7 +164,7 @@ if __name__== '__main__':
         random.shuffle(needToBeCrawledItems)
 
    
-        # split two or more threads for paralleling
+        # split two or more threads for paralleling, but no more than 5 cause you'll be banned
         batchList = tqdm(list(batch(needToBeCrawledItems, numberOfThread)), desc='Split to {} threads for each batch ...'.format(numberOfThread), ascii=True)
         for needToBeCrawledSlice in batchList:
             threads = list()
@@ -195,4 +196,22 @@ if __name__== '__main__':
                     crawlTagOnly = pageDataFormat['crawl_tag_only']
 
             
+    if config.gallery_url is not None:
+        galleryUrl = config.gallery_url
+
+        logging.info('Now downloading ::{}::'.format(galleryUrl))
+        if galleryUrl.find('exhentai') < 0 and galleryUrl.find('e-hentai') < 0:
+            logging.warning('You must specific correct URL like https://exhentai.org/g/<GALLERY_ID>/<GALLERY_HASH>/.')
+            exit()
+
+        try:
+            galleryId = galleryUrl.split('/')[4]
+            galleryHash = galleryUrl.split('/')[5]
+            element = (galleryId, galleryHash)
+            pageDataFormat = crawlTagAndImage(element, False, imgDataFolder)
+
+        except Exception as e:
+            logging.warning(e)
+            logging.warning('You must specific correct URL like https://exhentai.org/g/<GALLERY_ID>/<GALLERY_HASH>/.')
+
 

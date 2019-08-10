@@ -4,3 +4,5 @@ requests
 selenium
 
 bs4
+
+tqdm

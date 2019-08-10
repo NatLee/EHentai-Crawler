@@ -9,7 +9,7 @@ This crawler can help user to fetch information and images from EHentai by mocki
 
 There are many **hard coding** used to avoid some errors in these codes because this project is developed in few days.
 
-I only run this program at Windows 10 build 1903. You can help me to test at other OS.
+This program is executable on Windows 10 build 1903 and Ubuntu 18.04 with Chrome browser.
 
 At last, if you find a critical error or want to make this project better, just pull requests! Thank you!
 
@@ -22,24 +22,24 @@ You may need to install some packages by using the command as following.
 Then, you can read the help by executing `python main.py` and the result is shown in below.
 
 ```
-usage: main.py [-h] [--crawl_list [CRAWL_LIST]]
-               [--update_crawl_list [UPDATE_CRAWL_LIST]]
-               [--crawl_each_page [CRAWL_EACH_PAGE]]
-               [--crawl_tag_only [CRAWL_TAG_ONLY]]
+usage: main.py [-h] [-c [CRAWL_LIST]] [-u [UPDATE_CRAWL_LIST]]
+               [-p [CRAWL_EACH_PAGE]] [-to [CRAWL_TAG_ONLY]] [-cu GALLERY_URL]
 
 EHentai Crawler: You need crawl list to get list information from ehentai at
 first. Second, you can only crawl tags or both tags and images.
 
 optional arguments:
   -h, --help            show this help message and exit
-  --crawl_list [CRAWL_LIST]
+  -c [CRAWL_LIST], --crawl_list [CRAWL_LIST]
                         Crawl EHentai page list.
-  --update_crawl_list [UPDATE_CRAWL_LIST]
+  -u [UPDATE_CRAWL_LIST], --update_crawl_list [UPDATE_CRAWL_LIST]
                         Crawl EHentai page list and update with time check.
-  --crawl_each_page [CRAWL_EACH_PAGE]
+  -p [CRAWL_EACH_PAGE], --crawl_each_page [CRAWL_EACH_PAGE]
                         Crawl EHentai tags and save images for each page.
-  --crawl_tag_only [CRAWL_TAG_ONLY]
+  -to [CRAWL_TAG_ONLY], --crawl_tag_only [CRAWL_TAG_ONLY]
                         Crawl EHentai tags for each page.
+  -cu GALLERY_URL, --crawl_with_url GALLERY_URL
+                        Crawl EHentai gallery with url.
 ```
 
 And we use Chrome as our browser with selenium, so you need to install [Chrome](https://www.google.com/chrome/).
@@ -50,7 +50,7 @@ Selenium operate the browser with [Chromedriver](https://chromedriver.chromium.o
 
 First, you must set some settings in the file,`setting.ini`.
 
-**!!!THE NUMBER OF THREAD YOU SET MORE, THE PROBILITY OF IP BAN IS GETTING MORE!!!**
+**Note: The threads you set more, the probability of being banned is getting more.**
 
 ### Step: Indexing
 
@@ -58,7 +58,9 @@ Indexing is very important, so we need to crawl the index list.
 
 `python .\main.py --crawl_list`
 
-This may take about 25 hours to crawl the list from the EHentai index. I'll make it parallelly work in the future.
+This may take about 25 hours to crawl the list from the EHentai index.
+
+I'll make it parallelly work in the future.
 
 ### Step: Crawl information
 
@@ -76,6 +78,17 @@ Even if you only grab the general information, it will take a lot of time.
 
 But, I have no idea to solve this problem now.
 
+### Step: Extra
+
+You can only download images with URL.
+
+Just run this command:
+
+`python -i .\main.py -cu https://<EHENTAI_OR_EXHENTAI>.org/g/<GALLERY_ID>/<GALLERY_HASH>/`
+
+The downloaded images will save in the folder `.\img` as default.
+
+**Note: If you run with EXHentai URL, you must specific your pass id in `setting.ini`.**
 
 ### Data
 
