@@ -1,6 +1,6 @@
 
 # EHentai Crawler
-========
+
 [![License: GPL v3](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE) [![Python 3](https://img.shields.io/badge/python-3-blue.svg)](https://www.python.org/) 
 
 Crawl tags and images from EHentai or ExHentai.
@@ -74,7 +74,7 @@ Then, we start to crawl images and information which likes tags, rating, the num
 
 Or, you just want information, we can use this.
 
-`python .\main.py crawl_tag_only`
+`python .\main.py --crawl_tag_only`
 
 This step can take a very long time, and each IP has a limit on the number of image downloads. 
 
