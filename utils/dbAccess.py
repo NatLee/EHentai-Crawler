@@ -1,6 +1,9 @@
 import sqlite3
 import datetime
+from tqdm import tqdm
 from utils.config import galleryUrl
+
+
 
 class listDatabase():
 
@@ -13,12 +16,13 @@ class listDatabase():
 	                            "gallery_id"	INTEGER NOT NULL UNIQUE,
 	                            "uploader"	TEXT NOT NULL,
 	                            "pages"	INTEGER NOT NULL,
-                                "url_hash"	TEXT NOT NULL
+                                "url_hash"	TEXT NOT NULL,
+                                "removed"	INTEGER NOT NULL
                             );""".format(LIST_TABLE_NAME)
 
-    def __init__(self):
+    def __init__(self, dbName:str='list.db'):
 
-        self.__dbName = 'list.db'
+        self.__dbName = dbName
         self.__conn = self.__buildDatabase()
         
 
@@ -36,7 +40,7 @@ class listDatabase():
     def __commit(self):
         self.__conn.commit()
 
-    def __parseListDataFormat(self, listDataFormat):
+    def __parseListDataFormat(self, listDataFormat, removed:int=0):
         big_tag = listDataFormat.get('big_tag')
         title = listDataFormat.get('title')
         timestamp = listDataFormat.get('timestamp')
@@ -44,12 +48,12 @@ class listDatabase():
         uploader = listDataFormat.get('uploader')
         pages = listDataFormat.get('pages')
         url_hash = listDataFormat.get('url_hash')
-        return big_tag, title, timestamp, gallery_id, uploader, pages, url_hash
+        return big_tag, title, timestamp, gallery_id, uploader, pages, url_hash, removed
 
 
     def insertNewData(self, listDataFormat):
         dataPackage = self.__parseListDataFormat(listDataFormat)
-        query = """INSERT INTO {} VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)""".format(self.LIST_TABLE_NAME)
+        query = """INSERT INTO {} VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?)""".format(self.LIST_TABLE_NAME)
         with self.__conn:
             cursor = self.__conn.cursor()
             cursor.execute(query, dataPackage)
@@ -63,6 +67,13 @@ class listDatabase():
             cursor.execute(query, (timestamp, pages, url_hash, gallery_id))
         self.__commit()
 
+    def updateRemovedByGalleryId(self, galleryId, removedStatus):
+        query = """UPDATE {} SET removed = ? WHERE gallery_id = ?""".format(self.LIST_TABLE_NAME)
+        with self.__conn:
+            cursor = self.__conn.cursor()
+            cursor.execute(query, (removedStatus, galleryId))
+        self.__commit()
+
 
     def getAllGalleryId(self) -> list:
         query = """SELECT gallery_id FROM {}""".format(self.LIST_TABLE_NAME)
@@ -73,7 +84,7 @@ class listDatabase():
             if results is None:
                 allGalleryId = list()
             else:
-                allGalleryId = [ result[0] for result in results]
+                allGalleryId = [result[0] for result in results]
         return allGalleryId
 
 
@@ -127,7 +138,6 @@ class listDatabase():
                 url = galleryUrl + str(gallery_id) + '/' + str(result[0]) + '/'
         return url
 
-
     def getLastPublishTime(self) -> datetime.datetime:
         query = """SELECT timestamp FROM {} ORDER BY timestamp DESC LIMIT 1""".format(self.LIST_TABLE_NAME)
         with self.__conn:
@@ -139,6 +149,51 @@ class listDatabase():
             else:
                 lastPublishTime = datetime.datetime.strptime(result[0], '%Y-%m-%d %H:%M')
         return lastPublishTime
+
+    def getNotRemovedGalleryId(self) -> list:
+        query = """SELECT gallery_id FROM {} WHERE removed = 0""".format(self.LIST_TABLE_NAME)
+        with self.__conn:
+            cursor = self.__conn.cursor()
+            cursor.execute(query)
+            results = cursor.fetchall()
+            if results is None:
+                notBeenRemovedGallery = list()
+            else:
+                notBeenRemovedGallery = [result[0] for result in results]
+        return notBeenRemovedGallery
+
+    def getAllListData(self) -> dict:
+        query = """SELECT * FROM {}""".format(self.LIST_TABLE_NAME)
+        with self.__conn:
+            cursor = self.__conn.cursor()
+            cursor.execute(query)
+            results = cursor.fetchall()
+            allData = dict()
+            if results is not None:
+                for result in results:
+                    gallery_id = result[4]
+                    big_tag = result[1]
+                    title = result[2]
+                    timestamp = result[3]
+                    uploader = result[5]
+                    pages = result[6]
+                    url_hash = result[7]
+                    listDataFormat = {'big_tag': big_tag, 'timestamp': timestamp, 'title': title, 'gallery_id': gallery_id, 'uploader': uploader, 'pages': pages, 'url_hash': url_hash}
+                    allData[gallery_id] = listDataFormat
+        return allData
+
+    def syncList(self, addDb):
+        addDbAllData = addDb.getAllListData()
+        mainDbAllData = self.getAllListData()
+        for galleryId, dataFormat in tqdm(addDbAllData.items(), desc='List Data Sync...', ascii=True):
+            addTimestamp = datetime.datetime.strptime(dataFormat.get('timestamp'), '%Y-%m-%d %H:%M')
+            mainDbDataFormat = mainDbAllData.get(galleryId)
+            if mainDbDataFormat is not None:
+                mainTimestamp = datetime.datetime.strptime(mainDbDataFormat.get('timestamp'), '%Y-%m-%d %H:%M')
+                if mainTimestamp < addTimestamp:
+                    self.updateDataByGalleryId(dataFormat)
+            else:
+                self.insertNewData(dataFormat)
 
 
 
@@ -156,9 +211,9 @@ class pageDatabase():
                                 "all_downloaded_check" INTEGER NOT NULL
                             );""".format(PAGE_TABLE_NAME)
 
-    def __init__(self):
+    def __init__(self, dbName:str='list.db'):
 
-        self.__dbName = 'list.db'
+        self.__dbName = dbName
         self.__timezone = datetime.timezone(datetime.timedelta(hours=8))
         self.__conn = self.__buildDatabase()
         
@@ -177,30 +232,30 @@ class pageDatabase():
     def __commit(self):
         self.__conn.commit()
 
-    def __parsePageDataFormat(self, pageDataFormat):
+    def __parsePageDataFormat(self, pageDataFormat, last_update_time=None, all_downloaded_check=0):
         gallery_id = pageDataFormat.get('gallery_id')
         tags = pageDataFormat.get('tags')
         favorited_time = pageDataFormat.get('favorited_time')
         rating_count = pageDataFormat.get('rating_count')
         average_score = pageDataFormat.get('average_score')
-        last_update_time = datetime.datetime.utcnow()
-        # ehentai timezone UTC-1
-        last_update_time = last_update_time - datetime.timedelta(hours=1)
-        last_update_time = datetime.datetime.strftime(last_update_time, '%Y-%m-%d %H:%M')
-        all_downloaded_check = 0
+        if last_update_time is None:
+            last_update_time = datetime.datetime.utcnow()
+            # ehentai timezone UTC-1
+            last_update_time = last_update_time - datetime.timedelta(hours=1)
+            last_update_time = datetime.datetime.strftime(last_update_time, '%Y-%m-%d %H:%M')
         return gallery_id, tags, favorited_time, rating_count, average_score, last_update_time, all_downloaded_check
 
 
-    def insertNewData(self, pageDataFormat):
-        dataPackage = self.__parsePageDataFormat(pageDataFormat)
+    def insertNewData(self, pageDataFormat, last_update_time=None, all_downloaded_check=0):
+        dataPackage = self.__parsePageDataFormat(pageDataFormat, last_update_time, all_downloaded_check)
         query = """INSERT INTO {} VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)""".format(self.PAGE_TABLE_NAME)
         with self.__conn:
             cursor = self.__conn.cursor()
             cursor.execute(query, dataPackage)
         self.__commit()
 
-    def updateDataByGalleryId(self, pageDataFormat):
-        gallery_id, tags, favorited_time, rating_count, average_score, last_update_time, _ = self.__parsePageDataFormat(pageDataFormat)
+    def updateDataByGalleryId(self, pageDataFormat, last_update_time=None, all_downloaded_check=0):
+        gallery_id, tags, favorited_time, rating_count, average_score, last_update_time, _ = self.__parsePageDataFormat(pageDataFormat, last_update_time, all_downloaded_check)
         query = """UPDATE {} SET tags = ?, favorited_time = ?, rating_count = ?, average_score = ?, last_update_time = ? WHERE gallery_id = ?""".format(self.PAGE_TABLE_NAME)
         with self.__conn:
             cursor = self.__conn.cursor()
@@ -252,4 +307,40 @@ class pageDatabase():
             else:
                 allLasteUpdateTimeWithGalleryId = {result[0]:result[1] for result in results}
         return allLasteUpdateTimeWithGalleryId
+
+
+    def getAllPageData(self) -> dict:
+        query = """SELECT * FROM {}""".format(self.PAGE_TABLE_NAME)
+        with self.__conn:
+            cursor = self.__conn.cursor()
+            cursor.execute(query)
+            results = cursor.fetchall()
+            allData = dict()
+            if results is not None:
+                for result in results:
+                    gallery_id = result[1]
+                    tagClass = result[2]
+                    favorited_time = result[3]
+                    rating_count = result[4]
+                    average_score = result[5]
+                    last_update_time = result[6]
+                    pageDataFormat = {'favorited_time': favorited_time, 'rating_count': rating_count, 'average_score': average_score, 'gallery_id': gallery_id, 'tags': tagClass, 'last_update_time': last_update_time}
+                    allData[gallery_id] = pageDataFormat
+        return allData
+
+
+    def syncPage(self, addDb):
+        addDbAllData = addDb.getAllPageData()
+        mainDbAllData = self.getAllPageData()
+        for galleryId, dataFormat in tqdm(addDbAllData.items(), desc='Page Data Sync...', ascii=True):
+            addLastUpdateTime = datetime.datetime.strptime(dataFormat.get('last_update_time'), '%Y-%m-%d %H:%M')
+            mainDbDataFormat = mainDbAllData.get(galleryId)
+            if mainDbDataFormat is not None:
+                mainLastUpdateTime = datetime.datetime.strptime(mainDbDataFormat.get('last_update_time'), '%Y-%m-%d %H:%M')
+                if mainLastUpdateTime < addLastUpdateTime:
+                    self.updateDataByGalleryId(dataFormat, addLastUpdateTime)
+            else:
+                self.insertNewData(dataFormat, addLastUpdateTime)
+
+
 

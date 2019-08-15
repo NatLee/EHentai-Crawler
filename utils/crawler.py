@@ -112,10 +112,10 @@ def crawlTagAndImage(needToBeCrawledItems, crawlTagOnly, imgDataFolder):
             logging.warning('"{}" with gallery ::{}::'.format(e, gallery_id))
             if galleryPageHtml.text.find('This gallery has been removed or is unavailable') > 0:
                 logging.warning('This gallery ::{}:: has been removed or is unavailable.'.format(gallery_id))
-                return -1
+                return {'gallery_id': gallery_id, 'removed': 1}
             if galleryPageHtml.text.find('Gallery not found. If you just added this gallery, you may have to wait a short while before it becomes available.') > 0:
                 logging.warning('Gallery not found ::{}::'.format(gallery_id))
-                return -1
+                return {'gallery_id': gallery_id, 'notFound': 1}
             if galleryPageHtml.text.find('Error 503 Service Unavailable') > 0:
                 logging.warning('You got 503 Error with gallery ::{}::. We sleep 30 sec(s).'.format(gallery_id))
                 time.sleep(30)

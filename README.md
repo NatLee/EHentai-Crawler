@@ -26,6 +26,7 @@ Then, you can read the help by executing `python main.py` and the result is show
 ```
 usage: main.py [-h] [-c [CRAWL_LIST]] [-u [UPDATE_CRAWL_LIST]]
                [-p [CRAWL_EACH_PAGE]] [-to [CRAWL_TAG_ONLY]] [-cu GALLERY_URL]
+               [-ds OTHER_DATABASE_PATH]
 
 EHentai Crawler: You need crawl list to get list information from ehentai at
 first. Second, you can only crawl tags or both tags and images.
@@ -42,6 +43,8 @@ optional arguments:
                         Crawl EHentai tags for each page.
   -cu GALLERY_URL, --crawl_with_url GALLERY_URL
                         Crawl EHentai gallery with url.
+  -ds OTHER_DATABASE_PATH, --database_sync OTHER_DATABASE_PATH
+                        Sync data from other database.
 ```
 
 And we use Chrome as our browser with selenium, so you need to install [Chrome](https://www.google.com/chrome/).
@@ -56,7 +59,7 @@ First, you must set some settings in the file,`setting.ini`.
 
 **Note: The threads you set more, the probability of being banned is getting more.**
 
-### Step: Indexing
+#### Step: Indexing
 
 Indexing is very important, so we need to crawl the index list.
 
@@ -66,7 +69,7 @@ This may take about 25 hours to crawl the list from the EHentai index.
 
 I'll make it parallelly work in the future.
 
-### Step: Crawl information
+#### Step: Crawl information
 
 Then, we start to crawl images and information which likes tags, rating, the number of favorite for each gallery by using the command below. A lot of image files will take up a lot of space, so you may need to prepare a larger storage disk.
 
@@ -80,9 +83,9 @@ This step can take a very long time, and each IP has a limit on the number of im
 
 Even if you only grab the general information, it will take a lot of time. 
 
-But, I have no idea to solve this problem now.
+However, I have no idea to solve this problem now.
 
-### Step: Extra
+#### Step: Extra
 
 You can only download images with URL.
 
@@ -102,4 +105,12 @@ The file `list.db` belongs to `SQLite` format.
 
 I suggest that you can use this tool [DB Browser for SQLite](https://sqlitebrowser.org/) to easily veiw the details.
 
+#### Database Sync
 
+If you parallel crawl the website, you need sync the database.
+
+You can use this command to sync with other crawled data.
+
+`python .\main.py -ds <OTHER_DATABASE_PATH>`
+
+It will combine two database by their gallery ID and last update time.

@@ -23,10 +23,12 @@ parser.add_argument('-u', '--update_crawl_list', action='store', nargs='?', cons
 parser.add_argument('-p', '--crawl_each_page', action='store', nargs='?', const=True, default=False, type=bool, help='Crawl EHentai tags and save images for each page.')
 parser.add_argument('-to', '--crawl_tag_only', action='store', nargs='?', const=True, default=False, type=bool, help='Crawl EHentai tags for each page.')
 parser.add_argument('-cu', '--crawl_with_url', dest='gallery_url', default=None, type=str, help='Crawl EHentai gallery with url.')
+parser.add_argument('-ds', '--database_sync', dest='other_database_path', default=None, type=str, help='Sync data from other database.')
 parser.print_help()
 config = parser.parse_args()
 
 listDb = listDatabase()
+pd = pageDatabase()
 
 if __name__== '__main__':
 
@@ -136,9 +138,8 @@ if __name__== '__main__':
         # crawl every page and images
         allGalleryUrlWithGalleryId = listDb.getAllGalleryUrlWithGalleryId()
         allGalleryPublishTimeWithGalleryId = listDb.getAllGalleryPublishTimeWithGalleryId()
-        allGalleryPagesWithGalleryId = listDb.getAllGalleryPagesWithGalleryId()
+        notRemovedGalleryId = listDb.getNotRemovedGalleryId()
 
-        pd = pageDatabase()
         allLastUpdateTimeWithGalleryId = pd.getAllLastUpdateTimeWithGalleryId()
         notDownloadYetGalleryId = pd.getNotDownloadYetGalleryId()
 
@@ -149,7 +150,7 @@ if __name__== '__main__':
             needToBeCrawledGallery = set()
         for galleryId, publishTime in tqdm(allGalleryPublishTimeWithGalleryId.items(), desc='Preparing which gallery need to be crawled ...', ascii=True):
             lastUpdateTime = allLastUpdateTimeWithGalleryId.get(galleryId)
-            if lastUpdateTime is None or publishTime > lastUpdateTime:
+            if lastUpdateTime is None or publishTime > lastUpdateTime and galleryId in notRemovedGalleryId:
                 needToBeCrawledGallery.add(galleryId)
 
         needToBeCrawledGalleryUrlWithGalleryId = dict()
@@ -164,7 +165,7 @@ if __name__== '__main__':
         random.shuffle(needToBeCrawledItems)
 
    
-        # split two or more threads for paralleling, but no more than 5 cause you'll be banned
+        # split two or more threads for paralleling
         batchList = tqdm(list(batch(needToBeCrawledItems, numberOfThread)), desc='Split to {} threads for each batch ...'.format(numberOfThread), ascii=True)
         for needToBeCrawledSlice in batchList:
             threads = list()
@@ -181,9 +182,14 @@ if __name__== '__main__':
                 pageDataFormats.append(thread.join())
 
             for pageDataFormat in pageDataFormats:
-                if pageDataFormat == -1 or pageDataFormat is None:
-                    continue
                 gallery_id = pageDataFormat.get('gallery_id')
+                
+                if 'notFound' in pageDataFormat.keys():
+                    continue
+                if 'removed' in pageDataFormat.keys():
+                    listDb.updateRemovedByGalleryId(gallery_id, 1)
+                    continue
+
                 if allLastUpdateTimeWithGalleryId.get(gallery_id) is None:
                         pd.insertNewData(pageDataFormat)
                 else:
@@ -215,3 +221,9 @@ if __name__== '__main__':
             logging.warning('You must specific correct URL like https://exhentai.org/g/<GALLERY_ID>/<GALLERY_HASH>/.')
 
 
+    if config.other_database_path is not None:
+        otherDatabasePath = config.other_database_path
+        listDb.syncList(otherDatabasePath)
+        logging.info('List Data Sync Completed.')
+        pd.syncPage(otherDatabasePath)
+        logging.info('Page Data Sync Completed.')
