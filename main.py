@@ -182,10 +182,9 @@ if __name__== '__main__':
                 pageDataFormats.append(thread.join())
 
             for pageDataFormat in pageDataFormats:
-                gallery_id = pageDataFormat.get('gallery_id')
-                
-                if 'notFound' in pageDataFormat.keys():
+                if pageDataFormat is None or 'notFound' in pageDataFormat.keys():
                     continue
+                gallery_id = pageDataFormat.get('gallery_id')
                 if 'removed' in pageDataFormat.keys():
                     listDb.updateRemovedByGalleryId(gallery_id, 1)
                     continue
