@@ -59,6 +59,10 @@ class selectDriver():
         return htmlText
 
     def setCookie(self):
+        
+        if exMode:
+            self.driver.delete_all_cookies()
+
         # skip ehentai warning and exhentai pass
         self.driver.add_cookie({'name': 'nw', 'value': '1'})
         if exMode:

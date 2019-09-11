@@ -40,7 +40,7 @@ class listDatabase():
     def __commit(self):
         self.__conn.commit()
 
-    def __parseListDataFormat(self, listDataFormat, removed:int=0):
+    def __parseListDataFormat(self, listDataFormat):
         big_tag = listDataFormat.get('big_tag')
         title = listDataFormat.get('title')
         timestamp = listDataFormat.get('timestamp')
@@ -48,6 +48,10 @@ class listDatabase():
         uploader = listDataFormat.get('uploader')
         pages = listDataFormat.get('pages')
         url_hash = listDataFormat.get('url_hash')
+        if listDataFormat.get('removed') is None:
+            removed = 0
+        else:
+            removed = listDataFormat.get('removed')
         return big_tag, title, timestamp, gallery_id, uploader, pages, url_hash, removed
 
 
@@ -60,11 +64,11 @@ class listDatabase():
         self.__commit()
 
     def updateDataByGalleryId(self, listDataFormat):
-        _, _, timestamp, gallery_id, _, pages, url_hash = self.__parseListDataFormat(listDataFormat)
-        query = """UPDATE {} SET timestamp = ?, pages = ?, url_hash = ? WHERE gallery_id = ?""".format(self.LIST_TABLE_NAME)
+        _, _, timestamp, gallery_id, _, pages, url_hash, removed = self.__parseListDataFormat(listDataFormat)
+        query = """UPDATE {} SET timestamp = ?, pages = ?, url_hash = ?, removed = ? WHERE gallery_id = ?""".format(self.LIST_TABLE_NAME)
         with self.__conn:
             cursor = self.__conn.cursor()
-            cursor.execute(query, (timestamp, pages, url_hash, gallery_id))
+            cursor.execute(query, (timestamp, pages, url_hash, removed, gallery_id))
         self.__commit()
 
     def updateRemovedByGalleryId(self, galleryId, removedStatus):
@@ -178,7 +182,8 @@ class listDatabase():
                     uploader = result[5]
                     pages = result[6]
                     url_hash = result[7]
-                    listDataFormat = {'big_tag': big_tag, 'timestamp': timestamp, 'title': title, 'gallery_id': gallery_id, 'uploader': uploader, 'pages': pages, 'url_hash': url_hash}
+                    removed = result[8]
+                    listDataFormat = {'big_tag': big_tag, 'timestamp': timestamp, 'title': title, 'gallery_id': gallery_id, 'uploader': uploader, 'pages': pages, 'url_hash': url_hash, 'removed': removed}
                     allData[gallery_id] = listDataFormat
         return allData
 
@@ -187,9 +192,13 @@ class listDatabase():
         mainDbAllData = self.getAllListData()
         for galleryId, dataFormat in tqdm(addDbAllData.items(), desc='List Data Sync...', ascii=True):
             addTimestamp = datetime.datetime.strptime(dataFormat.get('timestamp'), '%Y-%m-%d %H:%M')
+            addRemoved = dataFormat.get('removed')
             mainDbDataFormat = mainDbAllData.get(galleryId)
             if mainDbDataFormat is not None:
                 mainTimestamp = datetime.datetime.strptime(mainDbDataFormat.get('timestamp'), '%Y-%m-%d %H:%M')
+                mainRemoved = mainDbDataFormat.get('removed')
+                if int(mainRemoved) < int(addRemoved):
+                    dataFormat['removed'] = addRemoved
                 if mainTimestamp < addTimestamp:
                     self.updateDataByGalleryId(dataFormat)
             else:
@@ -333,14 +342,23 @@ class pageDatabase():
         addDbAllData = addDb.getAllPageData()
         mainDbAllData = self.getAllPageData()
         for galleryId, dataFormat in tqdm(addDbAllData.items(), desc='Page Data Sync...', ascii=True):
-            addLastUpdateTime = datetime.datetime.strptime(dataFormat.get('last_update_time'), '%Y-%m-%d %H:%M')
-            mainDbDataFormat = mainDbAllData.get(galleryId)
-            if mainDbDataFormat is not None:
-                mainLastUpdateTime = datetime.datetime.strptime(mainDbDataFormat.get('last_update_time'), '%Y-%m-%d %H:%M')
-                if mainLastUpdateTime < addLastUpdateTime:
-                    self.updateDataByGalleryId(dataFormat, addLastUpdateTime)
-            else:
-                self.insertNewData(dataFormat, addLastUpdateTime)
-
+            addTime = dataFormat.get('last_update_time')
+            if len(addTime) > 16:
+                addTime = addTime[:16]
+            try:
+                addLastUpdateTime = datetime.datetime.strptime(addTime, '%Y-%m-%d %H:%M')
+            
+                mainDbDataFormat = mainDbAllData.get(galleryId)
+                if mainDbDataFormat is not None:
+                    mainTime = mainDbDataFormat.get('last_update_time')
+                    if len(mainTime) > 16:
+                        mainTime = mainTime[:16]
+                    mainLastUpdateTime = datetime.datetime.strptime(mainTime, '%Y-%m-%d %H:%M')
+                    if mainLastUpdateTime < addLastUpdateTime:
+                        self.updateDataByGalleryId(dataFormat, addLastUpdateTime)
+                else:
+                    self.insertNewData(dataFormat, addLastUpdateTime)
+            except Exception:
+                import pdb; pdb.set_trace()
 
 

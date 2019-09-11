@@ -52,22 +52,18 @@ def crawlTagAndImage(needToBeCrawledItems, crawlTagOnly, imgDataFolder):
     galleryUrl = needToBeCrawledItems[1]
 
     logging.debug('Starting to crawl gallery::{}:: tags and images for each page ...'.format(gallery_id))
-
-    sd = selectDriver()
     
     LOAD_SUCCESS_FLAG = False
     
     while not LOAD_SUCCESS_FLAG:
         try:
+            sd = selectDriver()
             htmlText = sd.getPageSource(galleryUrl)
-            if exMode:
-                sd.driver.delete_all_cookies()
-            # skip ehentai warning
+            
             sd.setCookie()
             if exMode:
                 htmlText = sd.getPageSource(galleryUrl)
             galleryPageHtml = BeautifulSoup(htmlText, 'html.parser')
-
 
 
             if galleryPageHtml.text.find('Content Warning') > 0:
@@ -75,6 +71,23 @@ def crawlTagAndImage(needToBeCrawledItems, crawlTagOnly, imgDataFolder):
                 htmlText = sd.getPageSource(galleryUrl)
                 galleryPageHtml = BeautifulSoup(htmlText, 'html.parser')
 
+            if htmlText.find('This gallery has been removed or is unavailable') > 0:
+                logging.warning('This gallery ::{}:: has been removed or is unavailable.'.format(gallery_id))
+                sd.close()
+                return {'gallery_id': gallery_id, 'removed': 1}
+            if htmlText.find('Gallery not found') > 0:
+                logging.warning('Gallery not found ::{}::'.format(gallery_id))
+                sd.close()
+                return {'gallery_id': gallery_id, 'removed': 1}
+            if htmlText.find('Error 503 Service Unavailable') > 0:
+                logging.warning('You got 503 Error with gallery ::{}::. We sleep 30 sec(s).'.format(gallery_id))
+                time.sleep(30)
+                continue
+
+            if htmlText.find('Your IP address has been temporarily banned for excessive pageloads ') > 0:
+                logging.warning('You got banned ::{}::'.format(gallery_id))
+                sd.close()
+                return {'gallery_id': gallery_id, 'banned': 1}
 
             galleryPageTagTable = galleryPageHtml.find_all('div', attrs={'id': 'taglist'})
             if len(galleryPageTagTable) != 0:
@@ -110,15 +123,7 @@ def crawlTagAndImage(needToBeCrawledItems, crawlTagOnly, imgDataFolder):
 
         except Exception as e:
             logging.warning('"{}" with gallery ::{}::'.format(e, gallery_id))
-            if galleryPageHtml.text.find('This gallery has been removed or is unavailable') > 0:
-                logging.warning('This gallery ::{}:: has been removed or is unavailable.'.format(gallery_id))
-                return {'gallery_id': gallery_id, 'removed': 1}
-            if galleryPageHtml.text.find('Gallery not found. If you just added this gallery, you may have to wait a short while before it becomes available.') > 0:
-                logging.warning('Gallery not found ::{}::'.format(gallery_id))
-                return {'gallery_id': gallery_id, 'notFound': 1}
-            if galleryPageHtml.text.find('Error 503 Service Unavailable') > 0:
-                logging.warning('You got 503 Error with gallery ::{}::. We sleep 30 sec(s).'.format(gallery_id))
-                time.sleep(30)
+            sd.close()
             time.sleep(3)
 
 

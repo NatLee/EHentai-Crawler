@@ -182,12 +182,15 @@ if __name__== '__main__':
                 pageDataFormats.append(thread.join())
 
             for pageDataFormat in pageDataFormats:
-                if pageDataFormat is None or 'notFound' in pageDataFormat.keys():
+                if pageDataFormat is None:
                     continue
                 gallery_id = pageDataFormat.get('gallery_id')
                 if 'removed' in pageDataFormat.keys():
                     listDb.updateRemovedByGalleryId(gallery_id, 1)
                     continue
+
+                if 'banned' in pageDataFormat.keys():
+                    exit(-1)
 
                 if allLastUpdateTimeWithGalleryId.get(gallery_id) is None:
                         pd.insertNewData(pageDataFormat)
@@ -221,8 +224,9 @@ if __name__== '__main__':
 
 
     if config.other_database_path is not None:
-        otherDatabasePath = config.other_database_path
-        listDb.syncList(otherDatabasePath)
+        otherListDb = listDatabase(config.other_database_path)
+        listDb.syncList(otherListDb)
         logging.info('List Data Sync Completed.')
-        pd.syncPage(otherDatabasePath)
+        otherPageDb = pageDatabase(config.other_database_path)
+        pd.syncPage(otherPageDb)
         logging.info('Page Data Sync Completed.')
